@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 reqwest = { version = "0.11.10", features = ["blocking"] }
-error-chain = "0.12.4"
 thiserror = "1.0.30"
 env_logger = "0.9.0"
 log = "0.4.16"

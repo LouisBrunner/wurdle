@@ -1,0 +1,243 @@
+openapi: 3.0.0
+
+info:
+  description: |
+    This is document defines a state-less Wordle API
+
+    # Creating a session
+
+    First you need to create a session with one of the following methods:
+
+     - use a random word
+     - use a specific word (using its ID, which means you don't need to know the corresponding word)
+     - using a specifc word
+
+    You will receive a `session_id` which must be given to all other endpoints.
+
+    # Guessing
+
+    Then you can start guessing words against a session, each call will give you details about your guess.
+    After 6 guesses or guessing correctly (whichever comes first), the session is considered terminated.
+
+    # Stateless-ness
+
+    The goal of this API is to store all state around a session in a secure (and potentially opaque) token: `session_id`.
+    This enables the API to performs action without having to store any data about session server-side, making it easy to maintain and scale the server.
+
+    # TODO
+
+     - Add a way to get green/orange results from a session?
+  version: 1.0.0
+  title: State-less Wordle API
+  license:
+    name: Mozilla Public License Version 2.0
+    url: 'https://www.mozilla.org/en-US/MPL/2.0/'
+
+tags:
+  - name: start
+    description: Operations to start a guessing session
+  - name: guess
+    description: Operation around guessing
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        id:
+          type: string
+          description: the error ID for this error
+        message:
+          type: string
+          description: the human readable description for this error
+        details:
+          allOf:
+          - $ref: '#/components/schemas/PolyDetails'
+          - description: |
+              extra details which can be nearly any type (including `null`), depends on the error ID
+      required: [id, message]
+    PolyDetails:
+      anyOf:
+        - type: string
+        - type: array
+          items: {}
+        - type: object
+    SessionStart:
+      type: object
+      properties:
+        session_id:
+          type: string
+        word_id:
+          type: string
+      required: [session_id, word_id]
+
+paths:
+  /v1/start/byID:
+    post:
+      tags: [start]
+      summary: Start a guessing session based on a word ID
+      description: |
+        Each word has a unique ID which allow you to start a session with a stable, random, word without knowing anything about it
+      operationId: startWithID
+      requestBody:
+        description: The ID for the target word
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                word_id:
+                  type: string
+              required: [word_id]
+      responses:
+        '200':
+          description: session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStart'
+        '400':
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/start/random:
+    post:
+      tags: [start]
+      summary: Start a guessing session with a random word
+      description: |
+        Each session will be completely unique and random
+      operationId: startRandom
+      responses:
+        '200':
+          description: session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStart'
+
+  /v1/start/byWord:
+    post:
+      tags: [start]
+      summary: Start a guessing session with a specific word to guess
+      description: |
+        This is useful if you want to train against a specific word
+
+        Note that the word doesn't have to be in the valid list of words but at least in the list of valid guesses
+      operationId: startWithWord
+      requestBody:
+        description: The target word
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                word:
+                  type: string
+              required: [word]
+      responses:
+        '200':
+          description: session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStart'
+        '400':
+          description: Invalid word
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/session/guess:
+    post:
+      tags: [guess]
+      summary: Perform a guess againt a session
+      description: |
+        This will mutate the session, advancing it forward (potentially terminating it in case of too many guesses or a successful one).
+      operationId: doGuess
+      requestBody:
+        description: The guess and associated session
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                guess:
+                  type: string
+              required: [session_id, guess]
+      responses:
+        '200':
+          description: valid guess (but not necessarily the right word)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  guess_number:
+                    type: number
+                    description: between 0 (not started yet) and 6 (finished)
+                  status:
+                    type: string
+                    enum: [guessed, failed, in_progress]
+                    description: successfully guessed, too many guesses or in progress
+                  result:
+                    type: array
+                    minLength: 5
+                    maxLength: 5
+                    items:
+                      type: string
+                      enum: [valid, wrong_place, wrong]
+                required: [guess_number, status, result]
+        '400':
+          description: Invalid guess (length or existence) or using a terminated or invalid session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/session/info:
+    get:
+      tags: [guess]
+      summary: Get information associated with that session
+      description: |
+        This is useful for debugging or showing extra informations to the user.
+      operationId: getSessionInfo
+      parameters:
+      - name: session_id
+        in: query
+        description: Session to display
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  word_id:
+                    type: string
+                  guess_number:
+                    type: number
+                    description: between 0 (not started yet) and 6 (finished)
+                  status:
+                    type: string
+                    enum: [guessed, failed, in_progress]
+                    description: successfully guessed, too many guesses or in progress
+                required: [word_id, guess_number, status]
+        '400':
+          description: Using an invalid session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
