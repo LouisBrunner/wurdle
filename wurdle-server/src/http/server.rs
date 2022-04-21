@@ -1,4 +1,3 @@
-use super::middlewares;
 use super::traits;
 use crate::database::traits::Database;
 use hyper::Server;
@@ -24,7 +23,6 @@ pub async fn run<T: 'static + Database + Send + Sync + Clone>(
     let addr = SocketAddr::from((addr, port));
 
     let service = server::MakeService::new(api);
-    let service = middlewares::logger::Logger::new(service);
     let service = server::context::MakeAddContext::<_, EmptyContext>::new(service);
 
     let server = Server::bind(&addr).serve(service);

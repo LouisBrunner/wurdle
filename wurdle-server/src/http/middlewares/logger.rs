@@ -1,32 +1,26 @@
-use hyper::service::Service;
+use hyper::{Body, Request, Response};
 use log::info;
-use std::task::{Context, Poll};
+use std::convert::Infallible;
+use swagger::{Has, XSpanIdString};
 
 pub struct Logger<T> {
     inner: T,
 }
 
-impl<T> Logger<T> {
-    pub fn new(inner: T) -> Self {
-        Self { inner }
-    }
+pub trait Handler<Request, Response> {
+    fn call(self, req: Request) -> Result<Response, Infallible>;
 }
 
-impl<T, Request> Service<Request> for Logger<T>
+impl<T, C> Handler<(Request<Body>, C), Response<Body>> for Logger<T>
 where
-    T: Service<Request>,
-    Request: core::fmt::Debug,
+    T: Handler<(Request<Body>, C), Response<Body>>,
+    C: Has<XSpanIdString>,
 {
-    type Response = T::Response;
-    type Error = T::Error;
-    type Future = T::Future;
-
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
-    }
-
-    fn call(&mut self, request: Request) -> Self::Future {
-        info!("[REQ] {:?}", request);
-        self.inner.call(request)
+    fn call(self, req: (Request<Body>, C)) -> Result<Response<Body>, Infallible> {
+        info!("[REQ] {:?}", req.0);
+        self.inner.call(req).map(|res| {
+            info!("[RES] {:?}", res);
+            res
+        })
     }
 }
