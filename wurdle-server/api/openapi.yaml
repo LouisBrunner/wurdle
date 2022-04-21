@@ -199,6 +199,9 @@ paths:
               schema:
                 type: object
                 properties:
+                  session_id:
+                    type: string
+                    description: new session id to use for next step
                   guess_number:
                     type: number
                     description: between 0 (not started yet) and 6 (finished)
@@ -213,7 +216,7 @@ paths:
                     items:
                       type: string
                       enum: [valid, wrong_place, wrong]
-                required: [guess_number, status, result]
+                required: [guess_number, status, result, session_id]
         '400':
           description: Invalid guess (length or existence) or using a terminated or invalid session
           content:

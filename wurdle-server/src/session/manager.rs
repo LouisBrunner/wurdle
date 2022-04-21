@@ -21,7 +21,7 @@ impl SessionManager {
         Ok(Self { key })
     }
 
-    pub fn serialize(&self, session: session::Session) -> Result<String, traits::Error> {
+    pub fn serialize(&self, session: &session::Session) -> Result<String, traits::Error> {
         let serialized = session.serialize()?;
         let compressed = {
             let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());

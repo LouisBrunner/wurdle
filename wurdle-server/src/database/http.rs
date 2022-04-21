@@ -79,6 +79,6 @@ impl traits::Database for Database {
     }
 
     fn guess_exists(&self, word: &str) -> Result<bool, traits::Error> {
-        Ok(self.guesses.contains(word))
+        Ok(self.guesses.contains(word) || self.words_lookup.contains_key(word))
     }
 }

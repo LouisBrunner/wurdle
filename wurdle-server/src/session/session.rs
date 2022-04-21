@@ -8,6 +8,17 @@ pub enum Status {
     Won { used_guesses: u8 },
 }
 
+impl Status {
+    pub fn to_string(&self) -> String {
+        match self {
+            Status::InProgress { .. } => "in_progress",
+            Status::Failed => "failed",
+            Status::Won { .. } => "guessed",
+        }
+        .to_string()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Session {
     pub word_id: String,
