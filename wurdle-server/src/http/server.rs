@@ -3,6 +3,8 @@ use crate::database::traits::Database;
 use hyper::Server;
 use log::info;
 use rand::{thread_rng, Rng};
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use swagger::{ApiError, EmptyContext, Has, XSpanIdString};
 
@@ -199,19 +201,29 @@ where
                     } else {
                         session::session::Status::InProgress { used_guesses }
                     };
-                    for (expected, received) in word
-                        .word
-                        .as_bytes()
+                    let word_slice = word.word.as_bytes();
+
+                    let mut letters_lookup: HashMap<u8, u32> = HashMap::new();
+                    for letter in word_slice.iter() {
+                        let amount = letters_lookup.entry(*letter).or_insert(0);
+                        *amount += 1;
+                    }
+
+                    for (expected, received) in word_slice
                         .iter()
                         .zip(inline_object2.guess.as_bytes().iter())
                     {
                         if expected == received {
                             result.push("valid".to_string())
-                        } else if word.word.contains(*received as char) {
-                            // TODO: wrong, should count how many times we report that
-                            result.push("wrong_place".to_string())
                         } else {
-                            result.push("wrong".to_string())
+                            let indicator = match letters_lookup.entry(*received) {
+                                Entry::Occupied(mut count) if count.get() > &0 => {
+                                    count.insert(*count.get() - 1);
+                                    "wrong_place"
+                                }
+                                Entry::Occupied(_) | Entry::Vacant(_) => "wrong",
+                            };
+                            result.push(indicator.to_string())
                         }
                     }
                 }

@@ -1,5 +1,4 @@
-// FIXME: re-enable later
-// #![deny(warnings)]
+#![deny(warnings)]
 
 mod database;
 mod http;
