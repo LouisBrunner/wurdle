@@ -2,6 +2,7 @@ use super::traits;
 use crate::database::traits::Database;
 use hyper::Server;
 use log::info;
+use rand::{thread_rng, Rng};
 use std::net::SocketAddr;
 use swagger::{ApiError, EmptyContext, Has, XSpanIdString};
 
@@ -41,6 +42,44 @@ struct Api<T: Database + Send + Sync + Clone> {
 impl<T: Database + Send + Sync + Clone> Api<T> {
     fn new(db: T, sessions: session::manager::SessionManager) -> Self {
         Self { db, sessions }
+    }
+
+    fn word_for_id(
+        &self,
+        word_id: &str,
+    ) -> Result<
+        Result<wurdle_openapi::models::SessionStart, wurdle_openapi::models::Error>,
+        wurdle_openapi::models::Error,
+    > {
+        match self.db.word_for_id(&word_id) {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(wurdle_openapi::models::Error {
+                    id: "abc".to_string(),
+                    message: format!("{}", err),
+                    details: None,
+                })
+            }
+        };
+        Ok(self.make_session(word_id))
+    }
+
+    fn make_session(
+        &self,
+        word_id: &str,
+    ) -> Result<wurdle_openapi::models::SessionStart, wurdle_openapi::models::Error> {
+        let session = session::session::Session::new(word_id);
+        match self.sessions.serialize(session) {
+            Ok(session_id) => Ok(wurdle_openapi::models::SessionStart {
+                session_id,
+                word_id: word_id.to_string(),
+            }),
+            Err(err) => Err(wurdle_openapi::models::Error {
+                id: "abc".to_string(),
+                message: format!("{}", err),
+                details: None,
+            }),
+        }
     }
 }
 
@@ -84,7 +123,31 @@ where
     ) -> Result<wurdle_openapi::StartRandomResponse, ApiError> {
         let context = context.clone();
         info!("start_random() - X-Span-ID: {:?}", context.get().0.clone());
-        Err(ApiError("not implemented".to_string()))
+
+        let mut rng = thread_rng();
+
+        let word_length = match self.db.word_length() {
+            Ok(word_length) => word_length,
+            Err(err) => {
+                return Ok(wurdle_openapi::StartRandomResponse::ServerError(
+                    wurdle_openapi::models::Error {
+                        id: "abc".to_string(),
+                        message: format!("{}", err),
+                        details: None,
+                    },
+                ))
+            }
+        };
+        let n: usize = rng.gen_range(0..word_length);
+        Ok(match self.word_for_id(n.to_string().as_str()) {
+            Ok(inner) => match inner {
+                Ok(session) => {
+                    wurdle_openapi::StartRandomResponse::SessionCreatedSuccessfully(session)
+                }
+                Err(err) => wurdle_openapi::StartRandomResponse::ServerError(err),
+            },
+            Err(err) => wurdle_openapi::StartRandomResponse::ServerError(err),
+        })
     }
 
     async fn start_with_id(
@@ -99,34 +162,14 @@ where
             context.get().0.clone()
         );
 
-        let word_id = inline_object.word_id;
-        match self.db.word_for_id(&word_id) {
-            Ok(_) => (),
-            Err(err) => {
-                return Ok(wurdle_openapi::StartWithIDResponse::InvalidID(
-                    wurdle_openapi::models::Error {
-                        id: "abc".to_string(),
-                        message: format!("{}", err),
-                        details: None,
-                    },
-                ))
-            }
-        };
-        let session = session::session::Session::new(&word_id);
-        Ok(match self.sessions.serialize(session) {
-            Ok(session_id) => wurdle_openapi::StartWithIDResponse::SessionCreatedSuccessfully(
-                wurdle_openapi::models::SessionStart {
-                    session_id,
-                    word_id,
-                },
-            ),
-            Err(err) => {
-                wurdle_openapi::StartWithIDResponse::ServerError(wurdle_openapi::models::Error {
-                    id: "abc".to_string(),
-                    message: format!("{}", err),
-                    details: None,
-                })
-            }
+        Ok(match self.word_for_id(inline_object.word_id.as_str()) {
+            Ok(inner) => match inner {
+                Ok(session) => {
+                    wurdle_openapi::StartWithIDResponse::SessionCreatedSuccessfully(session)
+                }
+                Err(err) => wurdle_openapi::StartWithIDResponse::ServerError(err),
+            },
+            Err(err) => wurdle_openapi::StartWithIDResponse::InvalidID(err),
         })
     }
 
@@ -141,6 +184,24 @@ where
             inline_object1,
             context.get().0.clone()
         );
-        Err(ApiError("not implemented".to_string()))
+
+        let word = match self.db.word_exists(inline_object1.word.as_str()) {
+            Ok(word) => word,
+            Err(err) => {
+                return Ok(wurdle_openapi::StartWithWordResponse::InvalidWord(
+                    wurdle_openapi::models::Error {
+                        id: "abc".to_string(),
+                        message: format!("{}", err),
+                        details: None,
+                    },
+                ))
+            }
+        };
+        Ok(match self.make_session(word.word_id.as_str()) {
+            Ok(session) => {
+                wurdle_openapi::StartWithWordResponse::SessionCreatedSuccessfully(session)
+            }
+            Err(err) => wurdle_openapi::StartWithWordResponse::ServerError(err),
+        })
     }
 }

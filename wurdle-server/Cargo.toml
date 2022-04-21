@@ -14,6 +14,7 @@ ring = { version = "0.16.20", features = ["std"] }
 flate2 = "1.0.23"
 base64 = "0.13.0"
 itertools = "0.10.3"
+rand = "0.8.5"
 
 "wurdle-openapi" = { path = "../wurdle-openapi", features = ["server"] }
 # required by wurdle-openapi
