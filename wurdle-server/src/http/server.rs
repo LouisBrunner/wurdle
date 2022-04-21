@@ -9,12 +9,15 @@ use wurdle_openapi;
 use wurdle_openapi::models;
 use wurdle_openapi::server;
 
+use crate::session;
+
 pub async fn run<T: 'static + Database + Send + Sync + Clone>(
     db: T,
+    sessions: session::manager::SessionManager,
     local_server: bool,
     port: u16,
 ) -> Result<(), traits::Error> {
-    let api = Api::new(db);
+    let api = Api::new(db, sessions);
 
     let addr = match local_server {
         true => [127, 0, 0, 1],
@@ -32,11 +35,12 @@ pub async fn run<T: 'static + Database + Send + Sync + Clone>(
 #[derive(Clone)]
 struct Api<T: Database + Send + Sync + Clone> {
     db: T,
+    sessions: session::manager::SessionManager,
 }
 
 impl<T: Database + Send + Sync + Clone> Api<T> {
-    fn new(db: T) -> Self {
-        Self { db }
+    fn new(db: T, sessions: session::manager::SessionManager) -> Self {
+        Self { db, sessions }
     }
 }
 
@@ -94,7 +98,36 @@ where
             inline_object,
             context.get().0.clone()
         );
-        Err(ApiError("not implemented".to_string()))
+
+        let word_id = inline_object.word_id;
+        match self.db.word_for_id(&word_id) {
+            Ok(_) => (),
+            Err(err) => {
+                return Ok(wurdle_openapi::StartWithIDResponse::InvalidID(
+                    wurdle_openapi::models::Error {
+                        id: "abc".to_string(),
+                        message: format!("{}", err),
+                        details: None,
+                    },
+                ))
+            }
+        };
+        let session = session::session::Session::new(&word_id);
+        Ok(match self.sessions.serialize(session) {
+            Ok(session_id) => wurdle_openapi::StartWithIDResponse::SessionCreatedSuccessfully(
+                wurdle_openapi::models::SessionStart {
+                    session_id,
+                    word_id,
+                },
+            ),
+            Err(err) => {
+                wurdle_openapi::StartWithIDResponse::ServerError(wurdle_openapi::models::Error {
+                    id: "abc".to_string(),
+                    message: format!("{}", err),
+                    details: None,
+                })
+            }
+        })
     }
 
     async fn start_with_word(

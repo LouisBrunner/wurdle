@@ -103,6 +103,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /v1/start/random:
     post:
@@ -118,6 +124,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionStart'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /v1/start/byWord:
     post:
@@ -148,6 +160,12 @@ paths:
                 $ref: '#/components/schemas/SessionStart'
         '400':
           description: Invalid word
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
           content:
             application/json:
               schema:
@@ -202,6 +220,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /v1/session/info:
     get:
@@ -237,6 +261,12 @@ paths:
                 required: [word_id, guess_number, status]
         '400':
           description: Using an invalid session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
           content:
             application/json:
               schema:
