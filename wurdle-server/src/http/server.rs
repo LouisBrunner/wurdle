@@ -12,6 +12,8 @@ use wurdle_openapi::server;
 
 use crate::session;
 
+const MAX_GUESSES: u8 = 6;
+
 pub async fn run<T: 'static + Database + Send + Sync + Clone>(
     db: T,
     sessions: session::manager::SessionManager,
@@ -54,11 +56,12 @@ impl<T: Database + Send + Sync + Clone> Api<T> {
         match self.db.word_for_id(&word_id) {
             Ok(_) => (),
             Err(err) => {
+                // TODO: WRONG
                 return Err(wurdle_openapi::models::Error {
                     id: "abc".to_string(),
                     message: format!("{}", err),
                     details: None,
-                })
+                });
             }
         };
         Ok(self.make_session(word_id))
@@ -114,7 +117,39 @@ where
             session_id,
             context.get().0.clone()
         );
-        Err(ApiError("not implemented".to_string()))
+
+        let session = match self.sessions.deserialize(&session_id) {
+            Ok(session) => session,
+            // TODO: wrong
+            Err(err) => {
+                return Ok(
+                    wurdle_openapi::GetSessionInfoResponse::UsingAnInvalidSession(
+                        wurdle_openapi::models::Error {
+                            id: "abc".to_string(),
+                            message: format!("{}", err),
+                            details: None,
+                        },
+                    ),
+                )
+            }
+        };
+        Ok(wurdle_openapi::GetSessionInfoResponse::SuccessfulOperation(
+            wurdle_openapi::models::InlineResponse2001 {
+                word_id: session.word_id.to_string(),
+                status: match session.status {
+                    session::session::Status::InProgress { .. } => "in_progress",
+                    session::session::Status::Failed => "failed",
+                    session::session::Status::Won { .. } => "guessed",
+                }
+                .to_string(),
+                guess_number: match session.status {
+                    session::session::Status::InProgress { used_guesses } => used_guesses,
+                    session::session::Status::Failed => MAX_GUESSES,
+                    session::session::Status::Won { used_guesses } => used_guesses,
+                }
+                .into(),
+            },
+        ))
     }
 
     async fn start_random(

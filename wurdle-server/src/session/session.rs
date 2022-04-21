@@ -10,8 +10,8 @@ pub enum Status {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Session {
-    word_id: String,
-    status: Status,
+    pub word_id: String,
+    pub status: Status,
 }
 
 impl Session {
