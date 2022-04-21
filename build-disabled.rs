@@ -10,8 +10,6 @@ fn main() {
     println!("cargo:rerun-if-changed={}", OPENAPI_FILE);
     println!("cargo:rerun-if-changed=build.rs");
 
-    let out_dir = env::var_os("OUT_DIR").unwrap();
-
     Command::new("which")
         .args(&[OPENAPI_GENERATOR])
         .status()
@@ -33,10 +31,7 @@ fn main() {
             "-g",
             "rust-server",
             "-o",
-            Path::new(&out_dir)
-                .join("openapi")
-                .to_str()
-                .expect("failed to convert string"),
+            "openapi",
         ])
         .status()
         .expect("failed to start generator")

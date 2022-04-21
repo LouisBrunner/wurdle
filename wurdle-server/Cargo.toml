@@ -1,0 +1,17 @@
+[package]
+name = "wurdle-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.11.10", features = ["blocking"] }
+thiserror = "1.0.30"
+env_logger = "0.9.0"
+log = "0.4.16"
+
+"wurdle-openapi" = { path = "../wurdle-openapi", features = ["server"] }
+# required by wurdle-openapi
+hyper = "0.13"
+async-trait = "0.1.24"
+swagger = "5.0.2"
+tokio = { version = "0.2", features = ["rt-threaded", "macros", "stream"] }

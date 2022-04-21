@@ -17,6 +17,7 @@ fn get_words_list<T: FromIterator<String>>(url: &str) -> Result<T, traits::Error
     Ok(body.split('\n').map(str::to_string).collect::<T>())
 }
 
+#[derive(Clone)]
 pub struct Database {
     words: Vec<String>,
     words_lookup: HashMap<String, usize>,
