@@ -1,8 +1,9 @@
 openapi: 3.0.0
 
 info:
+  title: Wurdle
   description: |
-    This is document defines a state-less Wordle API
+    This document defines a state-less Wordle API: Wurdle
 
     # Creating a session
 
@@ -28,7 +29,6 @@ info:
 
      - Add a way to get green/orange results from a session?
   version: 1.0.0
-  title: State-less Wordle API
   license:
     name: Mozilla Public License Version 2.0
     url: 'https://www.mozilla.org/en-US/MPL/2.0/'
