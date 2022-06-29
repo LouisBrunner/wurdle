@@ -70,6 +70,60 @@ components:
         word_id:
           type: string
       required: [session_id, word_id]
+    StartWithIDPayload:
+      type: object
+      properties:
+        word_id:
+          type: string
+      required: [word_id]
+    StartWithWordPayload:
+      type: object
+      properties:
+        word:
+          type: string
+      required: [word]
+    GuessPayload:
+      type: object
+      properties:
+        session_id:
+          type: string
+        guess:
+          type: string
+      required: [session_id, guess]
+    GuessReply:
+      type: object
+      properties:
+        session_id:
+          type: string
+          description: new session id to use for next step
+        guess_number:
+          type: number
+          description: between 0 (not started yet) and 6 (finished)
+        status:
+          type: string
+          enum: [guessed, failed, in_progress]
+          description: successfully guessed, too many guesses or in progress
+        result:
+          type: array
+          minLength: 5
+          maxLength: 5
+          items:
+            type: string
+            enum: [valid, wrong_place, wrong]
+      required: [guess_number, status, result, session_id]
+    InfoReply:
+      type: object
+      properties:
+        word_id:
+          type: string
+        guess_number:
+          type: number
+          description: between 0 (not started yet) and 6 (finished)
+        status:
+          type: string
+          enum: [guessed, failed, in_progress]
+          description: successfully guessed, too many guesses or in progress
+      required: [word_id, guess_number, status]
 
 paths:
   /v1/start/byID:
@@ -85,11 +139,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                word_id:
-                  type: string
-              required: [word_id]
+              $ref: '#/components/schemas/StartWithIDPayload'
       responses:
         '200':
           description: session created successfully
@@ -146,11 +196,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                word:
-                  type: string
-              required: [word]
+              $ref: '#/components/schemas/StartWithWordPayload'
       responses:
         '200':
           description: session created successfully
@@ -184,39 +230,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                session_id:
-                  type: string
-                guess:
-                  type: string
-              required: [session_id, guess]
+              $ref: '#/components/schemas/GuessPayload'
       responses:
         '200':
           description: valid guess (but not necessarily the right word)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  session_id:
-                    type: string
-                    description: new session id to use for next step
-                  guess_number:
-                    type: number
-                    description: between 0 (not started yet) and 6 (finished)
-                  status:
-                    type: string
-                    enum: [guessed, failed, in_progress]
-                    description: successfully guessed, too many guesses or in progress
-                  result:
-                    type: array
-                    minLength: 5
-                    maxLength: 5
-                    items:
-                      type: string
-                      enum: [valid, wrong_place, wrong]
-                required: [guess_number, status, result, session_id]
+                $ref: '#/components/schemas/GuessReply'
         '400':
           description: Invalid guess (length or existence) or using a terminated or invalid session
           content:
@@ -250,18 +271,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  word_id:
-                    type: string
-                  guess_number:
-                    type: number
-                    description: between 0 (not started yet) and 6 (finished)
-                  status:
-                    type: string
-                    enum: [guessed, failed, in_progress]
-                    description: successfully guessed, too many guesses or in progress
-                required: [word_id, guess_number, status]
+                $ref: '#/components/schemas/InfoReply'
         '400':
           description: Using an invalid session
           content:

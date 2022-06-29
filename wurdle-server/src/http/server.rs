@@ -113,7 +113,7 @@ where
 {
     async fn do_guess(
         &self,
-        inline_object2: models::InlineObject2,
+        inline_object2: models::GuessPayload,
         context: &C,
     ) -> Result<wurdle_openapi::DoGuessResponse, ApiError> {
         let context = context.clone();
@@ -228,14 +228,12 @@ where
                     }
                 }
 
-                wurdle_openapi::DoGuessResponse::ValidGuess(
-                    wurdle_openapi::models::InlineResponse200 {
-                        guess_number: used_guesses.into(),
-                        status: session.status.to_string(),
-                        result,
-                        session_id,
-                    },
-                )
+                wurdle_openapi::DoGuessResponse::ValidGuess(wurdle_openapi::models::GuessReply {
+                    guess_number: used_guesses.into(),
+                    status: session.status.to_string(),
+                    result,
+                    session_id,
+                })
             }
             session::session::Status::Failed | session::session::Status::Won { .. } => {
                 wurdle_openapi::DoGuessResponse::InvalidGuess(wurdle_openapi::models::Error {
@@ -267,7 +265,7 @@ where
             }
         };
         Ok(wurdle_openapi::GetSessionInfoResponse::SuccessfulOperation(
-            wurdle_openapi::models::InlineResponse2001 {
+            wurdle_openapi::models::InfoReply {
                 word_id: session.word_id.to_string(),
                 status: session.status.to_string(),
                 guess_number: match session.status {
@@ -315,7 +313,7 @@ where
 
     async fn start_with_id(
         &self,
-        inline_object: models::InlineObject,
+        inline_object: models::StartWithIdPayload,
         context: &C,
     ) -> Result<wurdle_openapi::StartWithIDResponse, ApiError> {
         let context = context.clone();
@@ -340,7 +338,7 @@ where
 
     async fn start_with_word(
         &self,
-        inline_object1: models::InlineObject1,
+        inline_object1: models::StartWithWordPayload,
         context: &C,
     ) -> Result<wurdle_openapi::StartWithWordResponse, ApiError> {
         let context = context.clone();
