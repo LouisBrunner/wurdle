@@ -26,6 +26,7 @@ enum Error {
 const ENV_SESSION_TOKEN: &str = "SESSION_TOKEN";
 const ENV_PORT: &str = "PORT";
 const DEFAULT_PORT: u16 = 8888;
+const ENV_PUBLIC_SERVER: &str = "PUBLIC_SERVER";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -43,8 +44,13 @@ async fn main() -> Result<(), Error> {
         Some(port) => port.parse::<u16>()?,
         None => DEFAULT_PORT,
     };
-    info!("running server with port {}", port);
-    http::server::run(db, sessions, true, port).await?;
+    let public = env::var(ENV_PUBLIC_SERVER).ok();
+    let local = match public {
+        Some(public) => !(public == "y"),
+        None => true,
+    };
+    info!("running server locally={} with port {}", local, port);
+    http::server::run(db, sessions, local, port).await?;
     debug!("server stopped");
 
     Ok(())

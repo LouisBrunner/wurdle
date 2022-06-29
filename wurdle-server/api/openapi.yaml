@@ -126,6 +126,27 @@ components:
       required: [word_id, guess_number, status]
 
 paths:
+  /openapi:
+    get:
+      tags: []
+      summary: Return the OpenAPI definition of this API
+      description: |
+        Raw YAML definition is returned
+      operationId: getOpenAPI
+      responses:
+        '200':
+          description: The definition
+          content:
+            application/yaml:
+              schema:
+                type: string
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /v1/start/byID:
     post:
       tags: [start]
