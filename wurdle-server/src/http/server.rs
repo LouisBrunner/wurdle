@@ -191,19 +191,6 @@ where
                     }
                 };
 
-                let session_id = match self.sessions.serialize(&session) {
-                    Ok(session_id) => session_id,
-                    Err(err) => {
-                        return Ok(wurdle_openapi::DoGuessResponse::ServerError(
-                            wurdle_openapi::models::Error {
-                                id: UNKNOWN_ERROR.to_string(),
-                                message: format!("{}", err),
-                                details: None,
-                            },
-                        ))
-                    }
-                };
-
                 let used_guesses = used_guesses + 1;
 
                 let mut result: Vec<String> = vec![];
@@ -247,6 +234,19 @@ where
                         }
                     }
                 }
+
+                let session_id = match self.sessions.serialize(&session) {
+                    Ok(session_id) => session_id,
+                    Err(err) => {
+                        return Ok(wurdle_openapi::DoGuessResponse::ServerError(
+                            wurdle_openapi::models::Error {
+                                id: UNKNOWN_ERROR.to_string(),
+                                message: format!("{}", err),
+                                details: None,
+                            },
+                        ))
+                    }
+                };
 
                 wurdle_openapi::DoGuessResponse::ValidGuess(wurdle_openapi::models::GuessReply {
                     guess_number: used_guesses.into(),
