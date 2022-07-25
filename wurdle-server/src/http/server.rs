@@ -300,6 +300,7 @@ where
 
     async fn start_random(
         &self,
+        payload: models::StartRandomPayload,
         context: &C,
     ) -> Result<wurdle_openapi::StartRandomResponse, ApiError> {
         let context = context.clone();
@@ -307,7 +308,7 @@ where
 
         let mut rng = thread_rng();
 
-        let word_length = match self.db.word_length() {
+        let word_length = match self.db.word_length(payload.restricted) {
             Ok(word_length) => word_length,
             Err(err) => {
                 return Ok(wurdle_openapi::StartRandomResponse::ServerError(
@@ -383,6 +384,60 @@ where
                 wurdle_openapi::StartWithWordResponse::SessionCreatedSuccessfully(session)
             }
             Err(err) => wurdle_openapi::StartWithWordResponse::ServerError(err),
+        })
+    }
+
+    async fn get_allowed_words(
+        &self,
+        context: &C,
+    ) -> Result<wurdle_openapi::GetAllowedWordsResponse, ApiError> {
+        let context = context.clone();
+        info!(
+            "get_allowed_words() - X-Span-ID: {:?}",
+            context.get().0.clone()
+        );
+
+        Ok(match self.db.allowed_words() {
+            Ok(words) => {
+                wurdle_openapi::GetAllowedWordsResponse::SuccessfulOperation(models::WordsList {
+                    words,
+                })
+            }
+            Err(err) => wurdle_openapi::GetAllowedWordsResponse::ServerError(
+                wurdle_openapi::models::Error {
+                    id: UNKNOWN_ERROR.to_string(),
+                    message: format!("{}", err),
+                    details: None,
+                },
+            ),
+        })
+    }
+
+    async fn get_answer_words(
+        &self,
+        restricted: bool,
+        context: &C,
+    ) -> Result<wurdle_openapi::GetAnswerWordsResponse, ApiError> {
+        let context = context.clone();
+        info!(
+            "get_allowed_words({:?}) - X-Span-ID: {:?}",
+            restricted,
+            context.get().0.clone()
+        );
+
+        Ok(match self.db.answer_words(restricted) {
+            Ok(words) => {
+                wurdle_openapi::GetAnswerWordsResponse::SuccessfulOperation(models::WordsList {
+                    words,
+                })
+            }
+            Err(err) => {
+                wurdle_openapi::GetAnswerWordsResponse::ServerError(wurdle_openapi::models::Error {
+                    id: UNKNOWN_ERROR.to_string(),
+                    message: format!("{}", err),
+                    details: None,
+                })
+            }
         })
     }
 }

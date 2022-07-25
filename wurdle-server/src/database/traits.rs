@@ -24,8 +24,11 @@ pub trait Database {
     fn word_for_id(&self, id: &str) -> Result<Word, Error>;
     fn word_exists(&self, word: &str) -> Result<Word, Error>;
     // For random
-    fn word_length(&self) -> Result<usize, Error>;
+    fn word_length(&self, restricted: bool) -> Result<usize, Error>;
     fn word_for_index(&self, id: usize) -> Result<Word, Error>;
     // For guessing
     fn guess_exists(&self, word: &str) -> Result<bool, Error>;
+    // For debugging/clients
+    fn allowed_words(&self) -> Result<Vec<String>, Error>;
+    fn answer_words(&self, restricted: bool) -> Result<Vec<String>, Error>;
 }

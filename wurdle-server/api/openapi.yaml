@@ -82,6 +82,13 @@ components:
         word:
           type: string
       required: [word]
+    StartRandomPayload:
+      type: object
+      properties:
+        restricted:
+          type: boolean
+          description: Use a restricted number of words instead of the full set
+      required: [restricted]
     GuessPayload:
       type: object
       properties:
@@ -124,6 +131,15 @@ components:
           enum: [guessed, failed, in_progress]
           description: successfully guessed, too many guesses or in progress
       required: [word_id, guess_number, status]
+    WordsList:
+      type: object
+      properties:
+        words:
+          type: array
+          items:
+            type: string
+          description: list of words
+      required: [words]
 
 paths:
   /openapi:
@@ -188,6 +204,13 @@ paths:
       description: |
         Each session will be completely unique and random
       operationId: startRandom
+      requestBody:
+        description: Control the randomness
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartRandomPayload'
       responses:
         '200':
           description: session created successfully
@@ -299,6 +322,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/words/allowed:
+    get:
+      tags: [words]
+      summary: Get the list of allowed words
+      description: |
+        This is useful for debugging or doing more client-side checks.
+      operationId: getAllowedWords
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WordsList'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/words/answers:
+    get:
+      tags: [words]
+      summary: Get the list of allowed words
+      description: |
+        This is useful for debugging or doing more client-side checks.
+      operationId: getAnswerWords
+      parameters:
+      - name: restricted
+        in: query
+        description: Using a restricted set of words
+        required: true
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WordsList'
         '500':
           description: Server Error
           content:
